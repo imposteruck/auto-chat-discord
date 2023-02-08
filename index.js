@@ -44,10 +44,20 @@ const getText = async () => {
 console.log("Starting...");
 (async () => {
   console.log('Initial browser 🌐');
-  const browser = await puppeteer.launch({
-    // headless: false,
-    args: ['--no-sandbox']
-  });
+  let browser = null;
+  if (!isEmpty(process.env.BROWSERLESS_TOKEN)) {
+    console.log('Using Browserless')
+    browser = await puppeteer.connect({
+      browserWSEndpoint: 'wss://chrome.browserless.io?token=' + process.env.BROWSERLESS_TOKEN,
+    });
+  } else {
+    console.log('Using Native Browser')
+    browser = await puppeteer.launch({
+      // headless: false,
+      args: ['--no-sandbox']
+    });
+  }
+
   try {
     const page = await browser.newPage();
     await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36')
