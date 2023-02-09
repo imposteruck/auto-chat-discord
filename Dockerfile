@@ -22,9 +22,7 @@ WORKDIR /home/fariz
 
 ADD package.json ./
 ADD .env ./
-
-RUN curl -fsSL https://bun.sh/install | bash
-RUN bun i
+RUN npm i
 
 ADD index.js ./
 
