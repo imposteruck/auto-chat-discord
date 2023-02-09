@@ -1,4 +1,4 @@
-const {executablePath} = require('puppeteer')
+const { executablePath } = require('puppeteer')
 const puppeteer = require('puppeteer-extra');
 const axios = require('axios');
 const qrcode = require('qrcode-terminal');
@@ -70,7 +70,10 @@ console.log("Starting...");
     console.log('Using Native Browser')
     browser = await puppeteer.launch({
       headless: false,
-      args: ['--no-sandbox'],
+      args: [
+        '--no-sandbox',
+        '--netifs-to-ignore=INTERFACE_TO_IGNORE',
+      ],
       executablePath: executablePath(),
     });
   }
@@ -79,7 +82,7 @@ console.log("Starting...");
     const page = await browser.newPage();
     // await page.setUserAgent(userAgent.random().toString())
     await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36')
-    // page.setDefaultNavigationTimeout(60 * 1000);
+    page.setDefaultNavigationTimeout(60 * 1000);
     console.log("🚀 Opening Login page Discord");
     await page.goto(`https://discord.com/login`, { waitUntil: ['load', 'networkidle0'] });
     if (isEmpty(process.env.EMAIL) || isEmpty(process.env.PASSWORD)) {
@@ -105,7 +108,7 @@ console.log("Starting...");
     }
 
     // await page.screenshot({ path: 'screenshot.png' });
-    
+
 
     console.log("solving recaptcha...");
     // That's it, a single line of code to solve reCAPTCHAs 🎉
@@ -114,7 +117,31 @@ console.log("Starting...");
     console.log("DONE solving recaptcha...");
     // await page.waitForNavigation();
     await page.waitForTimeout(4000);
+
+    let newLogin = await page.evaluate(() => {
+      let tags = document.getElementsByTagName("span");
+      let searchText = "-New login location detected, please check your e-mail.";
+      let found;
+
+      for (var i = 0; i < tags.length; i++) {
+        console.log(tags[i].textContent)
+        if (tags[i].textContent == searchText) {
+          found = tags[i];
+          break;
+        }
+      }
+      return found !== undefined
+    })
+
+    if (newLogin) {
+      console.log("New Login Detected! please acc in 10 sec")
+      await page.waitForTimeout(10000);
+      await page.click('button[type=submit]')
+      await page.waitForTimeout(4000);
+    }
+
     // await page.screenshot({ path: 'response.png', fullPage: true });
+    await page.waitForTimeout(4000);
 
     console.log("🚀 Go to channel: " + process.env.CHANNEL_URL);
     await page.waitForTimeout(4000);
