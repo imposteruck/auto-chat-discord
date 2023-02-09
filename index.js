@@ -1,6 +1,10 @@
-const puppeteer = require('puppeteer');
+const {executablePath} = require('puppeteer')
+const puppeteer = require('puppeteer-extra');
 const axios = require('axios');
 const qrcode = require('qrcode-terminal');
+const userAgent = require('user-agents');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth')
+const RecaptchaPlugin = require('puppeteer-extra-plugin-recaptcha')
 
 require('dotenv').config()
 
@@ -43,6 +47,18 @@ const getText = async () => {
 
 console.log("Starting...");
 (async () => {
+  // add stealth plugin and use defaults (all evasion techniques)
+  puppeteer.use(StealthPlugin())
+
+  // add recaptcha plugin and provide it your 2captcha token
+  // 2captcha is the builtin solution provider but others work as well.
+  puppeteer.use(
+    RecaptchaPlugin({
+      provider: { id: '2captcha', token: process.env.CAPTCHA_TOKEN },
+      visualFeedback: true // colorize reCAPTCHAs (violet = detected, green = solved)
+    })
+  )
+
   console.log('Initial browser 🌐');
   let browser = null;
   if (!isEmpty(process.env.BROWSERLESS_TOKEN)) {
@@ -53,15 +69,17 @@ console.log("Starting...");
   } else {
     console.log('Using Native Browser')
     browser = await puppeteer.launch({
-      // headless: false,
-      args: ['--no-sandbox']
+      headless: false,
+      args: ['--no-sandbox'],
+      executablePath: executablePath(),
     });
   }
 
   try {
     const page = await browser.newPage();
+    // await page.setUserAgent(userAgent.random().toString())
     await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36')
-    page.setDefaultNavigationTimeout(60 * 1000);
+    // page.setDefaultNavigationTimeout(60 * 1000);
     console.log("🚀 Opening Login page Discord");
     await page.goto(`https://discord.com/login`, { waitUntil: ['load', 'networkidle0'] });
     if (isEmpty(process.env.EMAIL) || isEmpty(process.env.PASSWORD)) {
@@ -86,7 +104,21 @@ console.log("Starting...");
       await page.waitForTimeout(4000);
     }
 
+    // await page.screenshot({ path: 'screenshot.png' });
+    
+
+    console.log("solving recaptcha...");
+    // That's it, a single line of code to solve reCAPTCHAs 🎉
+    await page.solveRecaptchas()
+
+    console.log("DONE solving recaptcha...");
+    // await page.waitForNavigation();
+    await page.waitForTimeout(4000);
+    // await page.screenshot({ path: 'response.png', fullPage: true });
+
     console.log("🚀 Go to channel: " + process.env.CHANNEL_URL);
+    await page.waitForTimeout(4000);
+    // await page.screenshot({ path: 'discord.png', fullPage: true });
     await page.goto(process.env.CHANNEL_URL)
     await page.waitForSelector('div[role=textbox]');
     await page.waitForTimeout(4000);
@@ -111,7 +143,7 @@ console.log("Starting...");
   } finally {
     await browser.close();
   }
-})().catch((e) => {
+})().catch(async (e) => {
   console.log(e);
   process.exitCode = 1;
 });
