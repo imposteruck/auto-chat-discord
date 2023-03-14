@@ -1,8 +1,10 @@
-const puppeteer = require('puppeteer');
-const axios = require('axios');
-const qrcode = require('qrcode-terminal');
+import puppeteer from 'puppeteer'
+import axios from 'axios'
+import qrcode from 'qrcode-terminal'
+import * as dotenv from 'dotenv'
 
-require('dotenv').config()
+dotenv.config()
+// require('dotenv').config()
 
 const isEmpty = (something) => something === "" || something === null || something === undefined;
 const getText = async () => {
@@ -52,28 +54,45 @@ console.log("Starting...");
     const page = await browser.newPage();
     await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36')
     page.setDefaultNavigationTimeout(60 * 1000);
+    let pages = await browser.pages();
+    await pages[0].close();
     console.log("🚀 Opening Login page Discord");
     await page.goto(`https://discord.com/login`, { waitUntil: ['load', 'networkidle0'] });
-    if (isEmpty(process.env.EMAIL) || isEmpty(process.env.PASSWORD)) {
-      await page.waitForSelector('div[class^=qrCode-]');
-      await page.waitForTimeout(5000);
-      const qrcodeUrl = await page.evaluate(async () => {
-        return await new Promise(resolve => { // <-- return the data to node.js from browser
-          resolve(document.querySelector("div[class^=qrCode-]").getAttribute("title"))
-        })
+
+    await page.waitForSelector('div[class^=qrCode-]');
+    await page.waitForTimeout(5000);
+    const qrBase64 = await page.evaluate(() => {
+      const base64 = btoa(unescape(encodeURIComponent(document.querySelector("div[class^=qrCode-]").getInnerHTML())));
+      const qrcode = 'data:image/svg+xml;base64,' + base64;
+      return qrcode;
+    });
+
+    const pageQRParser = await browser.newPage()
+    await pageQRParser.goto('https://qrcode-parser.netlify.app/', { waitUntil: ['load', 'networkidle0'] })
+    await pageQRParser.evaluate((externalVar) => {
+      document.querySelector('#image-base64').value = externalVar;
+      return null;
+    }, qrBase64);
+
+    await pageQRParser.click('#parse-image-base64');
+    await page.waitForTimeout(2000);
+    const qrValue = await pageQRParser.evaluate(async () => {
+      return await new Promise(resolve => { // <-- return the data to node.js from browser
+        resolve(document.querySelector("#content2").getInnerHTML())
       })
-      if (qrcodeUrl === null) throw "Something Wrong 😕";
-      console.log("You don't have credential, scan this barcode:");
-      qrcode.generate(qrcodeUrl);
+    })
+    await pageQRParser.close();
+
+    if (qrValue === null) {
+      console.log("Something wrong while parsing QrCode 😕");
+      console.log("Convert Base64 this to image and scan manually: ")
+      console.log(qrBase64)
+      await page.waitForTimeout(15000);
+    } else {
+      console.log("Scan this barcode:");
+      qrcode.generate(qrValue);
       console.log("You have 10 seconds to scan barcode 🙂");
       await page.waitForTimeout(10000);
-    } else {
-      console.log("Login with credential: " + process.env.EMAIL);
-      await page.waitForSelector('input[name=email], input[name=password]');
-      await page.type('input[name=email]', process.env.EMAIL);
-      await page.type('input[name=password]', process.env.PASSWORD);
-      await page.click('button[type=submit]')
-      await page.waitForTimeout(4000);
     }
 
     console.log("🚀 Go to channel: " + process.env.CHANNEL_URL);

@@ -12,6 +12,7 @@
     "discord",
     "puppeteer"
   ],
+  "type": "module",
   "author": "Fariz",
   "license": "ISC",
   "dependencies": {
