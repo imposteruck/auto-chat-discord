@@ -47,7 +47,7 @@ console.log("Starting...");
 (async () => {
   console.log('Initial browser 🌐');
   const browser = await puppeteer.launch({
-    // headless: false,
+    headless: 'new',
     args: ['--no-sandbox']
   });
   try {
