@@ -4,7 +4,6 @@ import qrcode from 'qrcode-terminal'
 import * as dotenv from 'dotenv'
 
 dotenv.config()
-// require('dotenv').config()
 
 const isEmpty = (something) => something === "" || something === null || something === undefined;
 const getText = async () => {
@@ -107,11 +106,13 @@ console.log("Starting...");
       await page.type('div[role=textbox]', data.value);
       await page.keyboard.press('Enter');
       console.log("Count: " + count);
-      if (isEmpty(process.env.RANDOM_SENTENCES)) {
-        console.log("✉️ Sending Quote:");
-        console.log(data.text);
-      } else {
-        console.log("✉️ Sending Text: " + data.value);
+      if (process.env.DEBUG_OUTPUT === 'true') {
+        if (isEmpty(process.env.RANDOM_SENTENCES)) {
+          console.log("✉️ Sending Quote:");
+          console.log(data.text);
+        } else {
+          console.log("✉️ Sending Text: " + data.value);
+        }
       }
       console.log("-------------------------------");
       await page.waitForTimeout(process.env.INTERVAL * 1000);
