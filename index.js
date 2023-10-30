@@ -46,7 +46,7 @@ console.log("Starting...");
 (async () => {
   console.log('Initial browser 🌐');
   const browser = await puppeteer.launch({
-    headless: 'new',
+    headless: false,
     args: [
       '--no-sandbox',
       // '--window-size=1920,1080'
@@ -65,10 +65,10 @@ console.log("Starting...");
     console.log("🚀 Opening Login page Discord");
     await page.goto(`https://discord.com/login`, { waitUntil: ['load', 'networkidle0'] });
 
-    await page.waitForSelector('div[class^=qrCodeContainer]');
+    await page.waitForSelector('div[class^=qrCode_]');
     await page.waitForTimeout(5000);
     const qrBase64 = await page.evaluate(() => {
-      const base64 = btoa(unescape(encodeURIComponent(document.querySelector("div[class^=qrCodeContainer]").getInnerHTML())));
+      const base64 = btoa(unescape(encodeURIComponent(document.querySelector("div[class^=qrCode_]").getInnerHTML())));
       const qrcode = 'data:image/svg+xml;base64,' + base64;
       return qrcode;
     });
@@ -87,7 +87,7 @@ console.log("Starting...");
         resolve(document.querySelector("#content2").getInnerHTML())
       })
     })
-    await pageQRParser.close();
+    // await pageQRParser.close();
 
     if (qrValue === null) {
       console.log("Something wrong while parsing QrCode 😕");
