@@ -47,7 +47,14 @@ console.log("Starting...");
   console.log('Initial browser 🌐');
   const browser = await puppeteer.launch({
     headless: 'new',
-    args: ['--no-sandbox']
+    args: [
+      '--no-sandbox',
+      // '--window-size=1920,1080'
+    ],
+    // defaultViewport: {
+    //   width:1920,
+    //   height:1080
+    // }
   });
   try {
     const page = await browser.newPage();
@@ -58,10 +65,10 @@ console.log("Starting...");
     console.log("🚀 Opening Login page Discord");
     await page.goto(`https://discord.com/login`, { waitUntil: ['load', 'networkidle0'] });
 
-    await page.waitForSelector('div[class^=qrCode-]');
+    await page.waitForSelector('div[class^=qrCodeContainer]');
     await page.waitForTimeout(5000);
     const qrBase64 = await page.evaluate(() => {
-      const base64 = btoa(unescape(encodeURIComponent(document.querySelector("div[class^=qrCode-]").getInnerHTML())));
+      const base64 = btoa(unescape(encodeURIComponent(document.querySelector("div[class^=qrCodeContainer]").getInnerHTML())));
       const qrcode = 'data:image/svg+xml;base64,' + base64;
       return qrcode;
     });
