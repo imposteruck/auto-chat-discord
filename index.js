@@ -109,10 +109,42 @@ console.log("Starting...");
     let count = 0;
     while (true) {
       count++;
-      const data = await getText();
-      await page.type('div[role=textbox]', data.value);
+      // const data = await getText();
+      await page.type('div[role=textbox]', process.env.RANDOM_SENTENCES);
       await page.keyboard.press('Enter');
-      console.log("Count: " + count);
+      // await page.type('div[role=textbox]', process.env.RANDOM_SENTENCES2);
+      // await page.keyboard.press('Enter');
+      console.log("Count: ",count,process.env.RANDOM_SENTENCES);
+
+      const combinedClassDivs = await page.$$(`div[class*="repliedMessage_"][class*="executedCommand_"]`);
+      const spanElements = await combinedClassDivs[0].$$('span');
+      const spanText = await page.evaluate(span => span.textContent, spanElements[0]);
+      console.log(spanText)
+      if (spanText === 'FUJINUMA SATORU') {
+        const parentElementHandle = await page.evaluateHandle(element => element.parentNode, combinedClassDivs[0]);
+        const parentElement = await parentElementHandle.executionContext().evaluate(node => node.outerHTML, parentElementHandle);
+        console.log('Parent element:', parentElement);
+
+        // Periksa apakah parentElement mengandung teks "Status" dan "Sending"
+        if (parentElement.includes('Status') && parentElement.includes('Sending')) {
+          console.log('parentElement contains "Status" and "Sending"');
+          await page.waitForTimeout(process.env.INTERVAL * 1000);
+        } else {
+          console.log('parentElement does not contain "Status" and "Sending"');
+          const regex = /Please wait\s+(\d+)\s+more\s+minutes/;
+          const match = parentElement.match(regex);
+          if (match) {
+            const numberValue = match[1];
+            console.log(numberValue); // Output: 27
+            await page.waitForTimeout((numberValue+1)*60 * 1000);
+          } else {
+            console.log("No match found");
+          }
+        }
+
+      }
+
+
       if (process.env.DEBUG_OUTPUT === 'true') {
         if (isEmpty(process.env.RANDOM_SENTENCES)) {
           console.log("✉️ Sending Quote:");
@@ -122,7 +154,7 @@ console.log("Starting...");
         }
       }
       console.log("-------------------------------");
-      await page.waitForTimeout(process.env.INTERVAL * 1000);
+      await page.waitForTimeout(20 * 1000);
     }
 
   } finally {
